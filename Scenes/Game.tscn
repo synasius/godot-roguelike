@@ -1,0 +1,39 @@
+[gd_scene load_steps=6 format=1]
+
+[ext_resource path="res://Scripts/Game.gd" type="Script" id=1]
+[ext_resource path="res://Scripts/Board.gd" type="Script" id=2]
+[ext_resource path="res://Scripts/States/IdlePlayer.gd" type="Script" id=3]
+[ext_resource path="res://Scripts/States/Inactive.gd" type="Script" id=4]
+[ext_resource path="res://Scripts/States/Moving.gd" type="Script" id=5]
+
+[node name="Game" type="Node"]
+
+script/script = ExtResource( 1 )
+window_zoom = 2
+
+[node name="Board" type="Node" parent="."]
+
+script/script = ExtResource( 2 )
+inner_grid_size = Vector2( 8, 8 )
+perim_thickness = Vector2( 1, 1 )
+count_obstacles = Vector2( 2, 7 )
+count_items = Vector2( 3, 6 )
+count_enemies = Vector2( 2, 2 )
+
+[node name="States" type="Node" parent="."]
+
+[node name="IdlePlayer" type="Node" parent="States"]
+
+script/script = ExtResource( 3 )
+
+[node name="Inactive" type="Node" parent="States"]
+
+script/script = ExtResource( 4 )
+
+[node name="Moving" type="Node" parent="States"]
+
+script/script = ExtResource( 5 )
+energy_cost = 5
+duration = 0.25
+
+
