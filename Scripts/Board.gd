@@ -1,16 +1,25 @@
 extends Node
 
+signal finished(board)
+
 export var inner_grid_size = Vector2(8, 8)
 export var perim_thickness = Vector2(1, 1)
 export var count_obstacles = Vector2(2, 7)
 export var count_items = Vector2(3, 6)
 export var count_enemies = Vector2(2, 2)
+
+var player
+var exit
+onready var actors = self.get_node('Actors')
+
 var __tile_collection
 var __grid
+
 
 class TileCollection:
 	var item = {}
 	var tile_size
+
 
 func fetch_tiles(tile_set_filepath, size_node_name):
 	"""
@@ -26,18 +35,41 @@ func fetch_tiles(tile_set_filepath, size_node_name):
 												.get_texture() \
 												.get_size())
 
+
 func get_tile_size():
 	"""
-	Returns the size of a single tile.
+	Returns the size of a single tile in pixels.
 	"""
 	return self.__tile_collection.tile_size
 
+
 func get_size():
 	"""
-	Returns the size of the board.
+	Returns the size of the board in pixels.
 	"""
 	return (2 * (self.perim_thickness + Vector2(1, 1)) + self.inner_grid_size) \
 			* self.__tile_collection.tile_size
+
+
+func make_board():
+	# initialize the grid with all the available positions
+	self.__grid = []
+	for x in range(0, self.inner_grid_size.x):
+		for y in range(0, self.inner_grid_size.y):
+			self.__grid.push_back(Vector2(x, y))
+
+	self.__add_base_tiles()
+
+	self.exit = self.__add_tile(self.__tile_collection.item.exit, self, Vector2(self.inner_grid_size.x, -1))
+	self.player = self.__add_tile(self.__tile_collection.item.player, self.actors, Vector2(-1, self.inner_grid_size.y))
+
+	self.__add_other_tiles(self.__tile_collection.item.obstacles, self, count_obstacles)
+	self.__add_other_tiles(self.__tile_collection.item.items, self, count_items)
+	self.__add_other_tiles(self.__tile_collection.item.enemies, self.actors, count_enemies)
+
+	# with this signal we let know to other components that the board is ready
+	emit_signal('finished', self)
+
 
 func __rand_tile(tile_set):
 	"""
@@ -47,7 +79,7 @@ func __rand_tile(tile_set):
 	var index = int(rand_range(0, tiles.size()))
 	return tiles[index]
 
-func __add_tile(tile, xy):
+func __add_tile(tile, parent, xy):
 	"""
 	A tile is added to the grid at position xy of the inner grid.
 	Outer walls and perimeter thickins are taken into account.
@@ -55,7 +87,8 @@ func __add_tile(tile, xy):
 	var tile_dup = tile.duplicate()
 	# To get the correct position we must multiply its grid coordinates by tile_size
 	tile_dup.set_pos((self.perim_thickness + Vector2(1, 1) + xy) * self.__tile_collection.tile_size)
-	self.add_child(tile_dup)
+	parent.add_child(tile_dup)
+	return tile_dup
 
 func __add_base_tiles():
 	"""
@@ -75,9 +108,9 @@ func __add_base_tiles():
 				tile = self.__rand_tile(self.__tile_collection.item.walls)
 			else:
 				tile = self.__rand_tile(self.__tile_collection.item.floors)
-			self.__add_tile(tile, Vector2(x, y))
+			self.__add_tile(tile, self, Vector2(x, y))
 
-func __add_other_tiles(tile_set, count=Vector2(1, 1)):
+func __add_other_tiles(tile_set, parent, count=Vector2(1, 1)):
 	"""
 	Add a random amount of tiles into the inner grid.
 	`count` vector represents the minimum (x) and maximum (y) amount.
@@ -88,22 +121,5 @@ func __add_other_tiles(tile_set, count=Vector2(1, 1)):
 		var xy = self.__grid[index]
 
 		var tile = self.__rand_tile(tile_set)
-		self.__add_tile(tile, xy)
+		self.__add_tile(tile, parent, xy)
 		self.__grid.remove(index)
-
-func make_board():
-	randomize()
-
-	# initialize the grid with all the available positions
-	self.__grid = []
-	for x in range(0, self.inner_grid_size.x):
-		for y in range(0, self.inner_grid_size.y):
-			self.__grid.push_back(Vector2(x, y))
-
-	self.__add_base_tiles()
-	self.__add_other_tiles(self.__tile_collection.item.obstacles, count_obstacles)
-	self.__add_other_tiles(self.__tile_collection.item.items, count_items)
-	self.__add_other_tiles(self.__tile_collection.item.enemies, count_enemies)
-
-	self.__add_tile(self.__tile_collection.item.exit, Vector2(self.inner_grid_size.x, -1))
-	self.__add_tile(self.__tile_collection.item.player, Vector2(-1, self.inner_grid_size.y))
